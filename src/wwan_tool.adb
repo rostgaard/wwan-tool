@@ -22,7 +22,7 @@ procedure WWAN_Tool is
    
    Control_Device_Name    : constant String(1 .. 12) := "/dev/ttyACM0";
    GPS_Device_Name        : constant String(1 .. 12) := "/dev/ttyACM2";
-   PIN                    : constant String(1 .. 4)  := "6749"; -- Fill in pin here
+   PIN                    : constant String(1 .. 4)  := "0000"; -- Fill in pin here
    Control_Device_Handle  : aliased Serial_Port;
    -- GPS_Device_Handle      : aliased Serial_Port;
 begin

@@ -3,3 +3,6 @@ default:
 
 clean:
 	rm build/*	
+
+distclean: clean
+	rm wwan_tool
