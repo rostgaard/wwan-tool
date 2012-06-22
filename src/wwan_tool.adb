@@ -6,47 +6,43 @@ with GNAT.OS_Lib;  use GNAT.OS_Lib;
 
 -- Local packages
 with WWAN_Commands; use WWAN_Commands;
-
--- TODO
--- * Make the program take command line arguments (Ada.Command_Line)
--- * Daemonize the program (optional)
--- * Make a call-home feature (check if there is internet already)
--- * Implement the scanning functions
--- * Build a html form/ssh server that receives the reports - or, send sms'
--- * Enable the anti-theft feature to be enabled from sms
+with Configuration;
+with Debug;
 
 procedure WWAN_Tool is 
    use Ada.Text_IO;
    use Ada.Integer_Text_IO;
    use GNAT.Serial_Communications;
    
-   Control_Device_Name    : constant String(1 .. 12) := "/dev/ttyACM0";
-   GPS_Device_Name        : constant String(1 .. 12) := "/dev/ttyACM2";
-   PIN                    : constant String(1 .. 4)  := "0000"; -- Fill in pin here
    Control_Device_Handle  : aliased Serial_Port;
    -- GPS_Device_Handle      : aliased Serial_Port;
 begin
+   Configuration.Load_Config_File("wwan_tool.conf");
    
    GNAT.Serial_Communications.Open (Port => Control_Device_Handle, 
-				    Name => Port_Name(Control_Device_Name));
+				    Name => Port_Name
+				      (Configuration.Value
+					 ("Control_Device_Name")));
    GNAT.Serial_Communications.Set 
-     (Port => Control_Device_Handle, 
-      Rate => GNAT.Serial_Communications.B115200, 
-      Bits => GNAT.Serial_Communications.CS8, 
+     (Port   => Control_Device_Handle, 
+      Rate   => GNAT.Serial_Communications.B115200, 
+      Bits   => GNAT.Serial_Communications.CS8, 
       Parity => GNAT.Serial_Communications.None,
-      Block => True);
-   --	, Timeout => 3.0);          
+      Block  => True);
+   --	, Timeout => 3.0);
    
    if PIN_Locked(Control_Device_Handle'Access) then
-      Put_Line("Card is locked, trying to unlock");
-      Unlock(Control_Device_Handle'Access,PIN);
+      Debug.Log
+	("WWAN_Tool: Card is locked, trying to unlock",Debug.Information);
+      Unlock(Control_Device_Handle'Access,Configuration.Value("PIN"));
    else
-      Put_Line("Card is unlocked.");
+      Debug.Log("WWAN_Tool: Card is unlocked.",Debug.Information);
+      Set_Mode(Control_Device_Handle'Access,Active);
    end if;
-   
-   -- Print_State(WWAN_Card);
    
 exception
    when E : GNAT.SERIAL_COMMUNICATIONS.SERIAL_ERROR =>
-      Put_Line("Error communicating with serial device (check presence and permissions)");
+      Debug.Log
+	("Error communicating with serial device (check presence and permissions)",
+	 Debug.Fatal);
 end WWAN_Tool;

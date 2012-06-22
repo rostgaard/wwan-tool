@@ -1,0 +1,5 @@
+# PIN code, mandatory
+PIN=XXXX
+
+Control_Device_Name=/dev/ttyACM0
+GPS_Device_Name=/dev/ttyACM2

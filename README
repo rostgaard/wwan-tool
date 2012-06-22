@@ -3,3 +3,12 @@ Ada WWAN Tool
 
 Some basic WWAN UART I/O routines for unlocking Ericsson F3507g Mobile Broadband Module
 
+TODO
+----
+  * Make the program take command line arguments (Ada.Command_Line)
+  * Daemonize the program (optional)
+  * Make a call-home feature (check if there is internet already) 
+  * Implement the scanning functions
+  * Build a html form/ssh server that receives the reports - or, send sms'
+  * Enable the anti-theft feature to be enabled from sms
+
