@@ -6,6 +6,8 @@ package body Debug is
                   Severity : in Severity_Type ) is
    begin
       case Severity is
+         when Debug =>
+            Put_Line (Transport_Map(Debug), "Debug: " &Message);
          when Information =>
             Put_Line (Transport_Map(Information), "Information: " &Message);
          when Warning =>

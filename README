@@ -5,6 +5,8 @@ Some basic WWAN UART I/O routines for unlocking Ericsson F3507g Mobile Broadband
 
 TODO
 ----
+  * Extend the procedure, so they can react to error conditions
+  * Make the inputs of the program more robust with an internal timeout and regexp
   * Make the program take command line arguments (Ada.Command_Line)
   * Daemonize the program (optional)
   * Make a call-home feature (check if there is internet already) 
@@ -12,3 +14,6 @@ TODO
   * Build a html form/ssh server that receives the reports - or, send sms'
   * Enable the anti-theft feature to be enabled from sms
 
+Bugs
+----
+  * The modem sometimes return NO CARRIER to commands, why?

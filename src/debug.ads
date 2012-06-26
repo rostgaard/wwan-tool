@@ -3,7 +3,7 @@ with Ada.Text_IO;
 package Debug is
    use Ada.Text_IO;
 
-   type Severity_Type is (Information, Warning, Error, Critical, Fatal);
+   type Severity_Type is (Debug, Information, Warning, Error, Critical, Fatal);
 
    type Transport_Map_Type is array (Severity_Type'Range) of File_Type;
    type Filename_Map_Type is array (Severity_Type'Range) of access String;

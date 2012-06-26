@@ -19,21 +19,21 @@ package body UART_IO is
                Item (Last) := Char;
          end case;
       end loop;
-   end Get_Line; 
-   
+   end Get_Line;
+
    procedure Put_Line (Target : access Ada.Streams.Root_Stream_Type'Class;
 		       Item   : in     String) is
    begin
       for Index in Item'Range loop
-         Character'Output (Target,
+         Character'Write (Target,
                            Item (Index));
-      end loop; 
+      end loop;
       -- The protocol waits for a CR
-      Character'Output (Target,
+      Character'Write (Target,
 			ASCII.CR);
 
    end Put_Line;
-   
+
    procedure Skip_Line (Source : access Ada.Streams.Root_Stream_Type'Class) is
       Char : Character;
    begin
@@ -48,5 +48,5 @@ package body UART_IO is
 	       null;
          end case;
       end loop;
-   end Skip_Line; 
+   end Skip_Line;
 end UART_IO;

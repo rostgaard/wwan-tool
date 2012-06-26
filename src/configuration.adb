@@ -4,7 +4,8 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 package body Configuration is
    use Ada.Text_IO, Ada.Strings.Fixed;
 
-   package Associative_Map is new Ada.Containers.Ordered_Maps(Unbounded_String, Unbounded_String);
+   package Associative_Map is new Ada.Containers.Ordered_Maps(Unbounded_String,
+                                                              Unbounded_String);
    use Associative_Map;
 
    Config            : Map;
@@ -40,7 +41,8 @@ package body Configuration is
                if Output_String (I) = '=' then
 
                   Config.Insert(To_Unbounded_String(Output_String (1 .. I-1)),
-                                To_Unbounded_String(Output_String (I+1 .. Line_Length)));
+                                To_Unbounded_String
+                                  (Output_String (I+1 .. Line_Length)));
 
 
                   Counter := Counter+1;
