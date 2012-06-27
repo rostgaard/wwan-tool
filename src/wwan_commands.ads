@@ -11,6 +11,8 @@ package WWAN_Commands is
    PUK_REQUIRED        : exception;
    NOT_IMPLEMENTED     : exception;
    COMMUNICATION_ERROR : exception;
+   PROTOCOL_ERROR      : exception;
+   NO_CARRIER_ERROR    : exception;
    type Card_Mode_Type is
      (Power_Off,
       -- 0 Minimum functionality,
@@ -33,6 +35,8 @@ package WWAN_Commands is
       Undefined);
 
    function Local_Echo (WWAN_Card : access Serial_Port) return Boolean;
+   procedure Set_Local_Echo (WWAN_Card : access Serial_Port;
+                             New_Value : Boolean);
 
 
    procedure Set_Mode (WWAN_Card : access Serial_Port; Mode : in Card_Mode_Type);
@@ -57,12 +61,18 @@ private
       WCDMA_Only => '6',
       others     =>  ASCII.NUL );
 
+   Char_Of_Boolean : constant array (Boolean) of Character :=
+                       (True  => '1', False => '0');
+
+   Boolean_Of_Char : constant array (Character range '0' .. '1') of Boolean :=
+                       ('0' => True, '1' => False);
+
    Mode_Of : constant array (Character) of Card_Mode_Type :=
      ( '0' => Power_Off,
        '1' => Active,
        '4' =>  Power_Save,
        '5' => GSM_Only,
        '6' => WCDMA_Only,
-       others => Undefined);
+      others => Undefined);
 
 end WWAN_Commands;

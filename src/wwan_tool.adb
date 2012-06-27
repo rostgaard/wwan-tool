@@ -36,6 +36,17 @@ begin
         ("WWAN_Tool: Local echo is on", Debug.Debug);
    else
       Debug.Log
+        ("WWAN_Tool: Local echo is off", Debug.Debug);
+   end if;
+   
+   Set_Local_Echo (Control_Device_Handle'Access,False);
+   
+   
+   if Local_Echo (Control_Device_Handle'Access) then
+      Debug.Log
+        ("WWAN_Tool: Local echo is on", Debug.Debug);
+   else
+      Debug.Log
         ("WWAN_Tool: Local echo is on", Debug.Debug);
    end if;
 

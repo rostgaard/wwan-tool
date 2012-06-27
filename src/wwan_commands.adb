@@ -1,55 +1,75 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Debug;
+with AT_Strings;
 
 package body WWAN_Commands is
 
-
-   function Local_Echo (WWAN_Card : access Serial_Port) return Boolean is
+   procedure Wait_For_OK (WWAN_Card : access Serial_Port) is
       Buffer  : String (1 .. 2048) := (others => ' ');
       Filled  : Natural            := 0;
-      Got_Ate : Boolean            := False;
-      Got_Ok  : Boolean            := False;
    begin
-      Debug.Log("Local_Echo TX: ATE?",Debug.Information);
-      UART_IO.Put_Line (WWAN_Card, "ATE?");
+      loop
+	 UART_IO.Get_Line ((WWAN_Card),Buffer,Filled);
+	 Debug.Log ("Wait_for_OK: " & Translate
+		    (Buffer(Buffer'First ..Buffer'First+Filled),
+		     Upper_Case_Map),Debug.Information);
 	 if Index (Source => Translate
 		     (Buffer(Buffer'First ..Buffer'First+Filled),
 		      Upper_Case_Map),
-            Pattern => "ATE?") /= 0 then
-         Got_Ate := True;
+		   Pattern => AT_Strings.Ok) /= 0 then
+	    return;
+	 elsif Index (Source => Translate
+		     (Buffer(Buffer'First ..Buffer'First+Filled),
+		      Upper_Case_Map),
+		      Pattern => AT_Strings.Error) /= 0 then
+	    raise PROTOCOL_ERROR;
+	 elsif Index (Source => Translate
+		     (Buffer(Buffer'First ..Buffer'First+Filled),
+		      Upper_Case_Map),
+		      Pattern => AT_Strings.No_Carrier) /= 0 then
+	    raise NO_CARRIER_ERROR;
+         end if;
+      end loop;
+   end Wait_For_OK;
+   
+   function Index_Of(Source  : in String; 
+		     Pattern : in String) return Natural is
+   begin
+      return Index (Source => Translate(Source, Upper_Case_Map),
+		    Pattern => Pattern);
+   end Index_Of;
+   
+   function Local_Echo (WWAN_Card : access Serial_Port) return Boolean is
+      Buffer   : String (1 .. 2048) := (others => ' ');
+      Filled   : Natural            := 0;
+      Got_Ate  : Boolean            := False;
+      Got_Echo : Boolean            := False;
+   begin
+      Debug.Log("Local_Echo TX: " & AT_Strings.Echo_Status ,Debug.Debug);
+      UART_IO.Put_Line (WWAN_Card, AT_Strings.Echo_Status);
+	 if Index_of (Source  => Buffer(Buffer'First ..Buffer'First+Filled),
+		      Pattern => AT_Strings.Echo_Status) /= 0 then
+         Got_Echo := True;
 	elsif Index (Source => Translate
 		     (Buffer(Buffer'First ..Buffer'First+Filled),
 		      Upper_Case_Map),
-            Pattern => "OK") /= 0 then
-                    Got_Ok := True;
+		     Pattern => AT_Strings.Echo_Reply) /= 0 then
+	   Got_Ate := Boolean_Of_Char(Buffer(Buffer'First+4));
          end if;
-
-      return Got_Ok or Got_Ate;
+	 Wait_For_OK(WWAN_Card);
+      return Got_Echo and Got_Ate;
    end Local_Echo;
+
 
    procedure Set_Local_Echo (WWAN_Card : access Serial_Port;
                              New_Value : Boolean) is
-
-      Buffer  : String (1 .. 2048) := (others => ' ');
-      Filled  : Natural            := 0;
-      Got_Ate : Boolean            := False;
-      Got_Ok  : Boolean            := False;
+      Buffer   : String (1 .. 2048) := (others => ' ');
+      Filled   : Natural            := 0;
    begin
-      Debug.Log("Local_Echo TX: ATE?",Debug.Information);
-      UART_IO.Put_Line (WWAN_Card, "ATE?");
-	 if Index (Source => Translate
-		     (Buffer(Buffer'First ..Buffer'First+Filled),
-		      Upper_Case_Map),
-            Pattern => "ATE?") /= 0 then
-         Got_Ate := True;
-	elsif Index (Source => Translate
-		     (Buffer(Buffer'First ..Buffer'First+Filled),
-		      Upper_Case_Map),
-            Pattern => "OK") /= 0 then
-                    Got_Ok := True;
-         end if;
-
-      return Got_Ok or Got_Ate;
+      Debug.Log ("Set_Local_Echo TX: ATE=" & Char_Of_Boolean (New_Value),
+                 Debug.Information);
+      UART_IO.Put_Line (WWAN_Card, "ATE=" & Char_Of_Boolean (New_Value));
+      Wait_For_OK(WWAN_Card);
    end Set_Local_Echo;
 
 
