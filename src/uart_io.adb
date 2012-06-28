@@ -1,14 +1,22 @@
+with Ada.Text_IO; use Ada.Text_Io;
+with Ada.Streams; use Ada.Streams;
+
 package body UART_IO is
 
    procedure Get_Line (Source : access Ada.Streams.Root_Stream_Type'Class;
                        Item   :    out String;
                        Last   :    out Natural) is
-      Char : Character;
+      Char   : Character;
+      Buffer : Stream_Element_Array (1 .. 1);
+      Offset : Stream_Element_Offset;      
    begin
       Last := Item'First - 1;
       loop
          exit when Last >= Item'Last;
-         Char := Character'Input (Source);
+	 Source.Read (Buffer, Offset);
+	 
+         --Char := Character'Input (Source);
+	 Char := Character'Val (Integer (Buffer (1)));
          case Char is
             when ASCII.CR =>
                null;
@@ -19,6 +27,10 @@ package body UART_IO is
                Item (Last) := Char;
          end case;
       end loop;
+      Put_Line
+	("UART received"
+	   & Stream_Element_Offset'Image (Offset)
+	   & " bytes");
    end Get_Line;
 
    procedure Put_Line (Target : access Ada.Streams.Root_Stream_Type'Class;

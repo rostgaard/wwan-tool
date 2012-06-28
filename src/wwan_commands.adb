@@ -1,33 +1,160 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Debug;
 with AT_Strings;
+with Configuration;
+with GNAT.String_Split;
 
 package body WWAN_Commands is
-
+   use GNAT;
+   
+   Buffer  : String (1 .. 2048) := (others => ' ');
+   Filled  : Natural            := 0;
+   
+   procedure Wait_For_OK (WWAN_Card : access Serial_Port);
+   
+   -- Requires that the pin is unlocked and in an active state
+   procedure Update_Status (WWAN_Card        : access Serial_Port; 
+			    Indicator_Status :    out Indicator_Status_Type )is
+      Subs : String_Split.Slice_Set;
+      Buf  : String (1 .. 1);
+   begin
+      Debug.Log("Update_Status: " & AT_Strings.Indicator_Status ,Debug.Debug);
+      UART_IO.Put_Line (WWAN_Card, AT_Strings.Indicator_Status);
+      
+      for I in 1 ..3 loop
+	 UART_IO.Get_Line ((WWAN_Card),Buffer,Filled);
+	 if Index (Source => Translate
+		     (Buffer(Buffer'First ..Buffer'First+Filled),
+		      Upper_Case_Map),
+		   Pattern => AT_Strings.Indicator_Reply) /= 0 then
+	    String_Split.Create (S          => Subs,
+				 From       => Buffer(Buffer'First .. Filled),
+				 Separators => (' ',','),
+				 Mode       => String_Split.Multiple);      
+	    -- Read in the values
+	    Indicator_Status.Battery_Charge := 
+	      Integer'Value(String_Split.Slice (Subs, 2));
+	    
+	    Indicator_Status.Signal := 
+	      Integer'Value(String_Split.Slice (Subs, 3));
+	    
+	    Buf := String_Split.Slice (Subs, 4);
+	    Indicator_Status.Battery_Warning := 
+	      Boolean_Of_Char(Buf(Buf'First));
+	    
+	    Buf := String_Split.Slice (Subs, 5);
+	    Indicator_Status.Charger_Connected := 
+	      Boolean_Of_Char(Buf(Buf'First));
+	    
+	    Buf := String_Split.Slice (Subs, 6);
+	    Indicator_Status.Service := 
+	      Boolean_Of_Char(Buf(Buf'First));
+	    
+	    Buf := String_Split.Slice (Subs, 7);
+	    Indicator_Status.Sounder := 
+	      Boolean_Of_Char(Buf(Buf'First));
+	    
+	    Buf := String_Split.Slice (Subs, 8);
+	    Indicator_Status.Message := 
+	      Boolean_Of_Char(Buf(Buf'First));
+	    
+	    Buf := String_Split.Slice (Subs, 9);
+	    Indicator_Status.Call := 
+	      Boolean_Of_Char(Buf(Buf'First));
+	    
+	    Buf := String_Split.Slice (Subs, 10);
+	    Indicator_Status.Roam := 
+	      Boolean_Of_Char(Buf(Buf'First));
+	    
+	    Buf := String_Split.Slice (Subs, 11);
+	    Indicator_Status.Smsfull := 
+	      Boolean_Of_Char(Buf(Buf'First));
+	    
+	    Indicator_Status.Call_Setup :=
+	      Integer'Value(String_Split.Slice (Subs, 12));
+	    
+	    Buf := String_Split.Slice (Subs, 13);
+	    Indicator_Status.Call_Held :=
+	      Boolean_Of_Char(Buf(Buf'First));
+	    
+	    Indicator_Status.Valid := True;
+	 end if;
+      end loop;
+      Wait_For_OK(Wwan_Card);
+   end;
+   
+   procedure Print_Status (Indicator_Status :    out Indicator_Status_Type ) is
+   begin
+      if not Indicator_Status.Valid then
+	 Debug.Log("Print_Status: Invalid record",Debug.Error);
+	 return;
+      end if;
+	 
+      Put ("Battery Charge:" & Natural'Image
+	     (Indicator_Status.Battery_Charge) & ", ");
+      Put ("Signal:" & Natural'Image
+	     (Indicator_Status.Signal) & ", ");
+      Put ("Battery Warning: " & Boolean'Image
+	     (Indicator_Status.Battery_Warning) & ", ");
+      Put ("Charger_Connected: " & Boolean'Image
+	     (Indicator_Status.Charger_Connected) & ", ");
+      Put ("Service: " & Boolean'Image
+	     (Indicator_Status.Service) & ", ");
+      Put ("Sounder: " & Boolean'Image
+	     (Indicator_Status.Sounder) & ", ");
+      Put ("Message: " & Boolean'Image
+	     (Indicator_Status.Message) & ", ");
+      Put ("Call: " & Boolean'Image
+	     (Indicator_Status.Call) & ", ");
+      Put ("Roam: " & Boolean'Image
+	     (Indicator_Status.Roam) & ", ");
+      Put ("Smsfull: " & Boolean'Image
+	     (Indicator_Status.Smsfull) & ", ");
+      Put ("Call_Setup:" & Natural'Image
+	     (Indicator_Status.Call_Setup) & ", ");
+      Put ("Call_Held: " & Boolean'Image
+	     (Indicator_Status.Call_Held));
+   end Print_Status;
+   
+   
+   procedure Read_Line_Loop (WWAN_Card : access Serial_Port) is
+   begin
+      loop
+	 UART_IO.Get_Line ((WWAN_Card),Buffer,Filled);
+	 Debug.Log ("Infinte_Loop: " & Translate
+		      (Buffer(Buffer'First ..Buffer'First+Filled),
+		       Upper_Case_Map),Debug.Debug);
+      end loop;
+   end Read_Line_Loop;
+   
    procedure Wait_For_OK (WWAN_Card : access Serial_Port) is
-      Buffer  : String (1 .. 2048) := (others => ' ');
-      Filled  : Natural            := 0;
    begin
       loop
 	 UART_IO.Get_Line ((WWAN_Card),Buffer,Filled);
 	 Debug.Log ("Wait_for_OK: " & Translate
-		    (Buffer(Buffer'First ..Buffer'First+Filled),
-		     Upper_Case_Map),Debug.Information);
+		      (Buffer(Buffer'First ..Buffer'First+Filled),
+		       Upper_Case_Map),Debug.Debug);
 	 if Index (Source => Translate
 		     (Buffer(Buffer'First ..Buffer'First+Filled),
 		      Upper_Case_Map),
 		   Pattern => AT_Strings.Ok) /= 0 then
 	    return;
 	 elsif Index (Source => Translate
-		     (Buffer(Buffer'First ..Buffer'First+Filled),
-		      Upper_Case_Map),
+			(Buffer(Buffer'First ..Buffer'First+Filled),
+			 Upper_Case_Map),
 		      Pattern => AT_Strings.Error) /= 0 then
 	    raise PROTOCOL_ERROR;
 	 elsif Index (Source => Translate
-		     (Buffer(Buffer'First ..Buffer'First+Filled),
-		      Upper_Case_Map),
+			(Buffer(Buffer'First ..Buffer'First+Filled),
+			 Upper_Case_Map),
 		      Pattern => AT_Strings.No_Carrier) /= 0 then
 	    raise NO_CARRIER_ERROR;
+	 elsif Index (Source => Translate
+			(Buffer(Buffer'First ..Buffer'First+Filled),
+			 Upper_Case_Map),
+		      Pattern => AT_Strings.Busy) /= 0 then
+	    raise BUSY_ERROR;
+	    
          end if;
       end loop;
    end Wait_For_OK;
@@ -40,8 +167,6 @@ package body WWAN_Commands is
    end Index_Of;
    
    function Local_Echo (WWAN_Card : access Serial_Port) return Boolean is
-      Buffer   : String (1 .. 2048) := (others => ' ');
-      Filled   : Natural            := 0;
       Got_Ate  : Boolean            := False;
       Got_Echo : Boolean            := False;
    begin
@@ -63,11 +188,9 @@ package body WWAN_Commands is
 
    procedure Set_Local_Echo (WWAN_Card : access Serial_Port;
                              New_Value : Boolean) is
-      Buffer   : String (1 .. 2048) := (others => ' ');
-      Filled   : Natural            := 0;
    begin
       Debug.Log ("Set_Local_Echo TX: ATE=" & Char_Of_Boolean (New_Value),
-                 Debug.Information);
+                 Debug.Debug);
       UART_IO.Put_Line (WWAN_Card, "ATE=" & Char_Of_Boolean (New_Value));
       Wait_For_OK(WWAN_Card);
    end Set_Local_Echo;
@@ -97,16 +220,14 @@ package body WWAN_Commands is
    function Get_Mode (WWAN_Card : access Serial_Port) return Card_Mode_Type is
       Locked : Boolean := True;
       Count  : Natural            := 0;
-      Buffer : String (1 .. 2048) := (others => ' ');
-      Filled : Natural            := 0;
       Mode   : Card_Mode_Type     := Undefined;
    begin
-      Debug.Log("Get_mode TX: " & "AT+CFUN?",Debug.Information);
+      Debug.Log("Get_mode TX: " & "AT+CFUN?",Debug.Debug);
       UART_IO.Put_Line (WWAN_Card,"AT+CFUN?");
       loop
 	 exit when Count = 5;
 	 UART_IO.Get_Line ((WWAN_Card),Buffer,Filled);
-	 Debug.Log("Get_mode RX: " & Buffer (Buffer'First .. Filled) ,Debug.Information);
+	 Debug.Log("Get_mode RX: " & Buffer (Buffer'First .. Filled) ,Debug.Debug);
 	 if Index (Source => Translate
 		     (Buffer(Buffer'First ..Buffer'First+Filled),
 		      Upper_Case_Map),
@@ -126,8 +247,6 @@ package body WWAN_Commands is
 
    -- AT+CFUN=1
    procedure Set_Mode (WWAN_Card : access Serial_Port; Mode : in Card_Mode_Type) is
-      Buffer : String (1 .. 2048) := (others => ' ');
-      Filled : Natural            := 0;
    begin
       if Get_Mode(WWAN_Card) = Mode then
 	 Debug.Log("Set_mode: card is already in the mode, exiting",Debug.Debug);
@@ -137,7 +256,7 @@ package body WWAN_Commands is
       -- TODO: When the card mode is set to 1, it must wait for a *EMWI: 1,0 \n \n+PACSP0,
       -- which appears to be coming in as an event
 
-      Debug.Log("Set_mode RX: " & "AT+CFUN=" & Char_Of(Mode),Debug.Information);
+      Debug.Log("Set_mode RX: " & "AT+CFUN=" & Char_Of(Mode),Debug.Debug);
       UART_IO.Put_Line (WWAN_Card,"AT+CFUN=" & Char_Of(Mode));
       UART_IO.Get_Line ((WWAN_Card),Buffer,Filled);
       Debug.Log("Set_mode RX: "& Buffer(Buffer'First .. Filled) ,Debug.Debug);
@@ -159,7 +278,7 @@ package body WWAN_Commands is
    begin
       -- PUK can be entered with the following : AT+CPIN="PUK","New_PIN"
 
-      Debug.Log ("Unlock: Sending AT+CPIN=""" & Pin & """",Debug.Information);
+      Debug.Log ("Unlock: Sending AT+CPIN=""" & Pin & """",Debug.Debug);
 
       -- Push the PIN code
       UART_IO.Put_Line (WWAN_Card,"AT+CPIN=""" & Pin & """");
@@ -195,8 +314,6 @@ package body WWAN_Commands is
    function PIN_Locked (WWAN_Card : access Serial_Port) return Boolean is
       Locked : Boolean := True;
       Count  : Natural := 0;
-      Buffer : String (1 .. 2048)       := (others => ' ');
-      Filled : Natural                  := 0;
    begin
       Put_Line("PIN_Locked: sending AT+CPIN?" );
       UART_IO.Put_Line (WWAN_Card,"AT+CPIN?");
@@ -206,7 +323,7 @@ package body WWAN_Commands is
 	 UART_IO.Get_Line ((WWAN_Card),Buffer,Filled);
 	 Debug.Log ("PIN_Locked: " & Translate
 		    (Buffer(Buffer'First ..Buffer'First+Filled),
-		     Upper_Case_Map),Debug.Information);
+		     Upper_Case_Map),Debug.Debug);
 	 if Index (Source => Translate
 		     (Buffer(Buffer'First ..Buffer'First+Filled),
 		      Upper_Case_Map),

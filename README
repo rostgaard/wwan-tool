@@ -1,10 +1,12 @@
 Ada WWAN Tool
 =============
 
-Some basic WWAN UART I/O routines for unlocking Ericsson F3507g Mobile Broadband Module
+Some basic WWAN UART I/O routines for accessing and communicating with an 
+Ericsson F3507g Mobile Broadband Module
 
 TODO
 ----
+  * Enable Tasking
   * Extend the procedure, so they can react to error conditions
   * Make the inputs of the program more robust with an internal timeout and regexp
   * Make the program take command line arguments (Ada.Command_Line)
