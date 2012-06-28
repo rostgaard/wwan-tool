@@ -7,11 +7,10 @@ with GNAT.String_Split;
 package body WWAN_Commands is
    use GNAT;
    
-   Buffer  : String (1 .. 2048) := (others => ' ');
+   Buffer  : String (1 .. 256) := (others => ' '); 
    Filled  : Natural            := 0;
    
    procedure Wait_For_OK (WWAN_Card : access Serial_Port);
-   
    -- Requires that the pin is unlocked and in an active state
    procedure Update_Status (WWAN_Card        : access Serial_Port; 
 			    Indicator_Status :    out Indicator_Status_Type )is
